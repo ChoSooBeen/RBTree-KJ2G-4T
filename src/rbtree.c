@@ -332,7 +332,7 @@ void rb_transplant(rbtree *t, node_t *u, node_t *v) {
 
 node_t *successor(rbtree *t, node_t *cur) {
   node_t *n = cur;
-  while(cur->left != t->nil) {
+  while(n->left != t->nil) {
     n = n->left;
   }
   return n;
