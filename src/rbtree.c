@@ -2,7 +2,9 @@
 
 #include <stdlib.h>
 
-static int inorder(node_t *p, key_t *arr, const rbtree *t, int i);
+static int inorder(node_t *p, key_t *arr, const rbtree *t, int i, size_t n);
+void left_rotate(rbtree *t, node_t *tmp);
+void right_rotate(rbtree *t, node_t *tmp);
 
 //RB Tree 구조체 생성
 rbtree *new_rbtree(void) {
@@ -89,45 +91,13 @@ node_t *rbtree_insert(rbtree *t, const key_t key) {
         if (tmp == tmp->parent->right) {
           tmp = tmp->parent;
           //왼쪽 회전
-          x = tmp->right;
-          tmp->right = x->left;
-          if (x->left != t->nil) {
-            x->left->parent = tmp;
-          }
-          x->parent = tmp->parent;
-          if (tmp->parent == t->nil) {
-            t->root = x;
-          }
-          else if (tmp == tmp->parent->left) {
-            tmp->parent->left = x;
-          }
-          else {
-            tmp->parent->right = x;
-          }
-          x->left = tmp;
-          tmp->parent = x;
+          left_rotate(t, tmp);
         }
         tmp->parent->color = RBTREE_BLACK;
         tmp->parent->parent->color = RBTREE_RED;
         tmp = tmp->parent->parent;
         //오른쪽 회전
-        x = tmp->left;
-        tmp->left = x->right;
-        if (x->right != t->nil) {
-          x->right->parent = tmp;
-        }
-        x->parent = tmp->parent;
-        if(tmp->parent == t->nil) {
-          t->root = x;
-        }
-        else if (tmp == tmp->parent->right) {
-          tmp->parent->right = x;
-        }
-        else {
-          tmp->parent->left = x;
-        }
-        x->right = tmp;
-        tmp->parent = x;
+        right_rotate(t, tmp);
       }
     }
     //부모가 오른쪽 노드일 경우
@@ -148,50 +118,60 @@ node_t *rbtree_insert(rbtree *t, const key_t key) {
         if (tmp == tmp->parent->left) {
           tmp = tmp->parent;
           //오른쪽 회전
-          x = tmp->left;
-          tmp->left = x->right;
-          if (x->right != t->nil) {
-            x->right->parent = tmp;
-          }
-          x->parent = tmp->parent;
-          if(tmp->parent == t->nil) {
-            t->root = x;
-          }
-          else if (tmp == tmp->parent->right) {
-            tmp->parent->right = x;
-          }
-          else {
-            tmp->parent->left = x;
-          }
-          x->right = tmp;
-          tmp->parent = x;
+          right_rotate(t, tmp);
         }
         tmp->parent->color = RBTREE_BLACK;
         tmp->parent->parent->color = RBTREE_RED;
         tmp = tmp->parent->parent;
         //왼쪽 회전
-        x = tmp->right;
-        tmp->right = x->left;
-        if (x->left != t->nil) {
-          x->left->parent = tmp;
-        }
-        x->parent = tmp->parent;
-        if (tmp->parent == t->nil) {
-          t->root = x;
-        }
-        else if (tmp == tmp->parent->left) {
-          tmp->parent->left = x;
-        }
-        else {
-          tmp->parent->right = x;
-        }
-        x->left = tmp;
-        tmp->parent = x;
+        left_rotate(t, tmp);
       }
     }
   }
   t->root->color = RBTREE_BLACK; //root는 항상 검정색이어야 한다.
   return t->root;
+}
+
+//왼쪽 회전
+void left_rotate(rbtree *t, node_t *tmp) {
+  node_t *x = tmp->right;
+  tmp->right = x->left;
+  if (x->left != t->nil) {
+    x->left->parent = tmp;
+  }
+  x->parent = tmp->parent;
+  if (tmp->parent == t->nil) {
+    t->root = x;
+  }
+  else if (tmp == tmp->parent->left) {
+    tmp->parent->left = x;
+  }
+  else {
+    tmp->parent->right = x;
+  }
+  x->left = tmp;
+  tmp->parent = x;
+}
+
+//오른쪽 회전
+void right_rotate(rbtree *t, node_t *tmp) {
+  node_t *x = tmp->left;
+  tmp->left = x->right;
+  if (x->right != t->nil) {
+    x->right->parent = tmp;
+  }
+  x->parent = tmp->parent;
+  if(tmp->parent == t->nil) {
+    t->root = x;
+  }
+  else if (tmp == tmp->parent->right) {
+    tmp->parent->right = x;
+  }
+  else {
+    tmp->parent->left = x;
+  }
+  x->right = tmp;
+  tmp->parent = x;
 }
 
 //RB Tree에 key와 같은 값을 가진 값이 있는지 탐색
@@ -241,24 +221,41 @@ node_t *rbtree_max(const rbtree *t) {
   return t->root;
 }
 
+//RB Tree에서 지정된 노드p를 제거
 int rbtree_erase(rbtree *t, node_t *p) {
-  // TODO: implement erase
+  // //p가 없는 노드이면 삭제 작업 안함
+  // if (p == t->nil) {
+  //   return 0;
+  // }
+
+  // // y : 삭제할 노드, x : y의 원래의 위치로 이동할 노드
+  // node_t *y = p;
+  // color_t y_original_color = y->color;
+  // node_t *x;
+
+  // if (p->left == t->nil) {
+
+  // }
+
   return 0;
 }
 
-int inorder(node_t *p, key_t *arr, const rbtree *t, int i) {
+//중위 순회
+int inorder(node_t *p, key_t *arr, const rbtree *t, int i, size_t n) {
     if (p == t->nil) {
       return i;
     }
-    i = inorder(p->left, arr, t, i);
-    arr[i++] = p->key;
-    i = inorder(p->right, arr, t, i);
+    if (i < n) {
+      i = inorder(p->left, arr, t, i, n);
+      arr[i++] = p->key;
+      i = inorder(p->right, arr, t, i, n);
+    }
     return i;
 }
 
 int rbtree_to_array(const rbtree *t, key_t *arr, const size_t n) {
   // TODO: implement to_array
   node_t *p = t->root;
-  inorder(p, arr, t, 0);
+  inorder(p, arr, t, 0, n);
   return 0;
 }
