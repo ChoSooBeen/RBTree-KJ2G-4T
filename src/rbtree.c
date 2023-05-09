@@ -5,6 +5,7 @@
 static int inorder(node_t *p, key_t *arr, const rbtree *t, int i, size_t n);
 void left_rotate(rbtree *t, node_t *tmp);
 void right_rotate(rbtree *t, node_t *tmp);
+void rb_transplant(rbtree *t, node_t *u, node_t *v);
 
 //RB Tree 구조체 생성
 rbtree *new_rbtree(void) {
@@ -197,47 +198,142 @@ node_t *rbtree_find(const rbtree *t, const key_t key) {
 
 //RB Tree에서 최솟값 반환
 node_t *rbtree_min(const rbtree *t) {
-  // TODO: implement find
-  node_t *min = t->root;
-  while(min->left != t->nil) {
-    min = min->left;
+  node_t *x = t->root;
+  while(x->left != t->nil) {
+    x = x->left;
   }
-  if (min != t->root) {
-    return min;
-  }
-  return t->root;
+  return x;
 }
 
 //RB Tree에서 최댓값 반환
 node_t *rbtree_max(const rbtree *t) {
-  // TODO: implement find
-  node_t *max = t->root;
-  while(max->right != t->nil) {
-    max = max->right;
+  node_t *x = t->root;
+  while(x->right != t->nil) {
+    x = x->right;
   }
-  if (max != t->root) {
-    return max;
-  }
-  return t->root;
+  return x;
 }
 
 //RB Tree에서 지정된 노드p를 제거
 int rbtree_erase(rbtree *t, node_t *p) {
-  // //p가 없는 노드이면 삭제 작업 안함
-  // if (p == t->nil) {
-  //   return 0;
-  // }
+  //p가 없는 노드이면 삭제 작업 안함
+  if (p == NULL) {
+    return 0;
+  }
 
-  // // y : 삭제할 노드, x : y의 원래의 위치로 이동할 노드
-  // node_t *y = p;
-  // color_t y_original_color = y->color;
-  // node_t *x;
+  // y : 삭제할 노드, x : y의 원래의 위치로 이동할 노드
+  node_t *y = p;
+  color_t y_original_color = y->color;
+  node_t *x;
 
-  // if (p->left == t->nil) {
+  //p가 오른쪽 자식만 가질 경우
+  if (p->left == t->nil) {
+    x = p->right;
+    rb_transplant(t, p, p->right);
+  } //p가 왼쪽 자식만 가질 경우
+  else if (p->right == t->nil) {
+    x = p->left;
+    rb_transplant(t, p, p->left);
+  } //양쪽 자식 모두 가질 경우
+  else {
+    rbtree *tmp = NULL;
+    tmp->root = p->right;
+    tmp->nil = t->nil;
+    //오른쪽 서브트리에서 가장 작은 수 반환
+    //successor 를 찾는다.
+    y = rbtree_min(tmp);
+    y_original_color = y->color;
+    x = y->right;
+    if (y == p->right) {
+      x->parent = y;
+    }
+    else {
+      rb_transplant(t, y, y->right);
+      y->right = p->right;
+      y->right->parent = y;
+    }
+    rb_transplant(t, p, y);
+    y->left = p->left;
+    y->left->parent = y;
+    y->color = p->color;
+  }
 
-  // }
-
+  //RB-DELETE-Fixup------------------------------
+  if (y_original_color == RBTREE_BLACK) {
+    node_t *w = NULL;
+    while (x != t->root && x->color == RBTREE_BLACK){
+      if(x == x->parent->left) {
+        w = x->parent->right;
+        if(w->color == RBTREE_RED) {
+          w->color = RBTREE_BLACK;
+          x->parent->color = RBTREE_RED;
+          left_rotate(t, x->parent);
+          w = x->parent->right;
+        }
+        if(w->left->color == RBTREE_BLACK && w->right->color == RBTREE_BLACK) {
+          w->color = RBTREE_RED;
+          x = x->parent;
+        }
+        else {
+          if (w->right->color == RBTREE_BLACK) {
+            w->left->color = RBTREE_BLACK;
+            w->color = RBTREE_RED;
+            right_rotate(t, w);
+            w = x->parent->right;
+          }
+          w->color = x->parent->color;
+          x->parent->color = RBTREE_BLACK;
+          w->right->color = RBTREE_BLACK;
+          left_rotate(t, x->parent);
+          x = t->root;
+        }
+      }
+      else {
+        w = x->parent->left;
+        if(w->color == RBTREE_RED) {
+          w->color = RBTREE_BLACK;
+          x->parent->color = RBTREE_RED;
+          right_rotate(t, x->parent);
+          w = x->parent->left;
+        }
+        if(w->right->color == RBTREE_BLACK && w->left->color == RBTREE_BLACK) {
+          w->color = RBTREE_RED;
+          x = x->parent;
+        }
+        else {
+          if (w->left->color == RBTREE_BLACK) {
+            w->right->color = RBTREE_BLACK;
+            w->color = RBTREE_RED;
+            left_rotate(t, w);
+            w = x->parent->left;
+          }
+          w->color = x->parent->color;
+          x->parent->color = RBTREE_BLACK;
+          w->left->color = RBTREE_BLACK;
+          right_rotate(t, x->parent);
+          x = t->root;
+        }
+      }
+    }
+    x->color = RBTREE_BLACK;
+  }
+  free(p);
+  p = NULL;
   return 0;
+}
+
+//u : 삭제할 노드, v : u의 자식 노드 - u의 부모 노드와 연결되어야 한다.
+void rb_transplant(rbtree *t, node_t *u, node_t *v) {
+  if (u->parent == t->nil) {
+    t->root = v;
+  }
+  else if (u == u->parent->left) {
+    u->parent->left = v;
+  }
+  else {
+    u->parent->right = v;
+  }
+  v->parent = u->parent;
 }
 
 //중위 순회
@@ -245,11 +341,12 @@ int inorder(node_t *p, key_t *arr, const rbtree *t, int i, size_t n) {
     if (p == t->nil) {
       return i;
     }
+    i = inorder(p->left, arr, t, i, n);
     if (i < n) {
-      i = inorder(p->left, arr, t, i, n);
-      arr[i++] = p->key;
-      i = inorder(p->right, arr, t, i, n);
+      arr[i] = p->key;
+      i++;
     }
+    i = inorder(p->right, arr, t, i, n);
     return i;
 }
 
