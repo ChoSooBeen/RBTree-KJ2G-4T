@@ -6,6 +6,7 @@ static int inorder(node_t *p, key_t *arr, const rbtree *t, int i, size_t n);
 void left_rotate(rbtree *t, node_t *tmp);
 void right_rotate(rbtree *t, node_t *tmp);
 void rb_transplant(rbtree *t, node_t *u, node_t *v);
+void delete_rbtree_one(rbtree *t, node_t *p);
 
 //RB Tree 구조체 생성
 rbtree *new_rbtree(void) {
@@ -19,20 +20,21 @@ rbtree *new_rbtree(void) {
 
 //RB Tree 구조체가 차지했던 메모리 반환
 void delete_rbtree(rbtree *t) {
-  node_t *tmp = NULL;
-  rbtree *n = NULL;
-  if (t->root != t->nil){
-    tmp = t->root;
-    if (tmp->left != t->nil){
-      n->root = tmp->left;
-      delete_rbtree(n);
-    }
-    if (tmp->right != t->nil) {
-      n->root = tmp->right;
-      delete_rbtree(n);
-    }
-  }
+  delete_rbtree_one(t, t->root);
+  free(t->nil);
+  t->nil = NULL;
   free(t);
+  t = NULL;
+}
+
+void delete_rbtree_one(rbtree *t, node_t *p) {
+  if (p != t->nil) {
+    delete_rbtree_one(t, p->left);
+    delete_rbtree_one(t, p->right);
+
+    free(p);
+    p = NULL;
+  }
 }
 
 //RB Tree에 key 삽입하기
@@ -244,7 +246,7 @@ int rbtree_erase(rbtree *t, node_t *p) {
     y = rbtree_min(tmp);
     y_original_color = y->color;
     x = y->right;
-    if (y == p->right) {
+    if (y->parent == p) {
       x->parent = y;
     }
     else {
@@ -260,10 +262,9 @@ int rbtree_erase(rbtree *t, node_t *p) {
 
   //RB-DELETE-Fixup------------------------------
   if (y_original_color == RBTREE_BLACK) {
-    node_t *w = NULL;
     while (x != t->root && x->color == RBTREE_BLACK){
       if(x == x->parent->left) {
-        w = x->parent->right;
+        node_t *w = x->parent->right;
         if(w->color == RBTREE_RED) {
           w->color = RBTREE_BLACK;
           x->parent->color = RBTREE_RED;
@@ -289,7 +290,7 @@ int rbtree_erase(rbtree *t, node_t *p) {
         }
       }
       else {
-        w = x->parent->left;
+        node_t *w = x->parent->left;
         if(w->color == RBTREE_RED) {
           w->color = RBTREE_BLACK;
           x->parent->color = RBTREE_RED;
@@ -338,21 +339,19 @@ void rb_transplant(rbtree *t, node_t *u, node_t *v) {
 
 //중위 순회
 int inorder(node_t *p, key_t *arr, const rbtree *t, int i, size_t n) {
-    if (p == t->nil) {
-      return i;
-    }
-    i = inorder(p->left, arr, t, i, n);
     if (i < n) {
-      arr[i] = p->key;
-      i++;
+      if (p->left != t->nil) {
+        i = inorder(p->left, arr, t, i, n);
+      }
+      arr[i++] = p->key;
+      if (p->right != t->nil) {
+        i = inorder(p->right, arr, t, i, n);
+      }
     }
-    i = inorder(p->right, arr, t, i, n);
     return i;
 }
 
 int rbtree_to_array(const rbtree *t, key_t *arr, const size_t n) {
-  // TODO: implement to_array
-  node_t *p = t->root;
-  inorder(p, arr, t, 0, n);
+  inorder(t->root, arr, t, 0, n);
   return 0;
 }
