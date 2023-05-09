@@ -1,5 +1,4 @@
 #include "rbtree.h"
-
 #include <stdlib.h>
 
 static int inorder(node_t *p, key_t *arr, const rbtree *t, int i);
@@ -241,8 +240,21 @@ node_t *rbtree_max(const rbtree *t) {
   return t->root;
 }
 
+int rbtree_transplant(rbtree *t, node_t *p) {
+  // TODO: implement erase
+  
+  return 0;
+}
+
 int rbtree_erase(rbtree *t, node_t *p) {
   // TODO: implement erase
+  
+  return 0;
+}
+
+int rbtree_erase_fixup(rbtree *t, node_t *p) {
+  // TODO: implement erase
+  
   return 0;
 }
 
